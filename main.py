@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 # ─── Foundation ────────────────────────────────────────────────────────────
 
+# Use absolute path resolution to ensure stability on Vercel
 root_path = Path(__file__).resolve().parent
 sys.path.append(str(root_path))
 
@@ -33,24 +34,22 @@ db_initialized = False
 
 # ─── Production Asset Mounting ──────────────────────────────────────────────
 
-# We prioritize 'frontend/dist' for production.
+# Path to the compiled frontend
 dist_path = root_path / "frontend" / "dist"
-src_path = root_path / "frontend"
 
 try:
     if dist_path.exists():
-        print("Production build detected. Serving from /dist")
-        # Mount the assets folder
+        print(f"Production build found at: {dist_path}")
+        # Mount /assets to dist/assets
         if (dist_path / "assets").exists():
-            app.mount("/assets", StaticFiles(directory=dist_path / "assets"), name="assets")
-        # Serve icons and other root assets
-        app.mount("/static", StaticFiles(directory=dist_path), name="static")
+            app.mount("/assets", StaticFiles(directory=str(dist_path / "assets")), name="assets")
+        # Mount the rest of dist to /static fallback
+        app.mount("/static", StaticFiles(directory=str(dist_path)), name="static")
     else:
-        print("No dist found. Falling back to /src (Development mode)")
+        print("CRITICAL: Production 'dist' folder not found. Falling back to source mode.")
+        src_path = root_path / "frontend"
         if (src_path / "src").exists():
-            app.mount("/src", StaticFiles(directory=src_path / "src"), name="src")
-        if (src_path / "public").exists():
-            app.mount("/public", StaticFiles(directory=src_path / "public"), name="public")
+            app.mount("/src", StaticFiles(directory=str(src_path / "src")), name="src")
 except Exception as e:
     print(f"Non-critical: Static mount failed: {e}")
 
@@ -93,16 +92,21 @@ async def dashboard():
     """Main dashboard entry point. Favors production dist/index.html."""
     html_path = dist_path / "index.html"
     if not html_path.exists():
-        html_path = src_path / "index.html"
+        html_path = root_path / "frontend" / "index.html"
         
     if not html_path.exists():
-        return HTMLResponse(content="<h1>Setup Error</h1><p>index.html not found.</p>", status_code=500)
+        return HTMLResponse(content="<h1>Setup Error</h1><p>index.html not found. Deployment mismatch.</p>", status_code=500)
     
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "db": db_initialized, "mode": "production" if dist_path.exists() else "dev"}
+    return {
+        "status": "ok", 
+        "db": db_initialized, 
+        "dist_exists": dist_path.exists(),
+        "root": str(root_path)
+    }
 
 # ─── Logic Overrides (Late Imports) ─────────────────────────────────────────
 
@@ -117,13 +121,13 @@ async def chat(data: dict = Body(...)):
     
     async with AsyncSessionLocal() as session:
         t_res = await tool_get_all_tasks(session)
-        num_tasks = len(t_res.get('tasks', []))
-        prompt = f"User: {message}\nContext: {num_tasks} tasks available."
+        tasks = t_res.get('tasks', [])
+        prompt = f"User: {message}\nContext: {len(tasks)} tasks."
         try:
-            response = await call_llm(prompt=prompt, system_prompt=f"You are the {agent}.")
+            response = await call_llm(prompt=prompt, system_prompt=f"You are {agent}.")
             return {"message": response}
         except Exception:
-            return {"message": f"Thinking... (Coordinator is active)"}
+            return {"message": "System active. Ready for input."}
 
 @app.post("/api/recover")
 async def recover(data: dict = Body(...)):
