@@ -1,5 +1,5 @@
 """
-DisruptionShield - FastAPI Backend (Vercel Serverless Version)
+DisruptionShield - FastAPI Backend (Final Root-Entry Version)
 Serves the HTML dashboard and handles API calls
 """
 import os
@@ -13,8 +13,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# Ensure root directory is in sys.path for serverless imports
-root_path = Path(__file__).parent.parent
+# Correct path logic for root-level entry
+root_path = Path(__file__).parent
 sys.path.append(str(root_path))
 
 from database import init_db, AsyncSessionLocal
@@ -39,7 +39,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve the frontend directory statically (Corrected path for api/ subfolder)
+# Serve the frontend directory statically
 frontend_path = root_path / "frontend"
 if frontend_path.exists():
     app.mount("/src", StaticFiles(directory=frontend_path / "src"), name="src")
@@ -87,7 +87,7 @@ async def db_session_middleware(request, call_next):
 @app.get("/", response_class=HTMLResponse)
 @app.get("/api", response_class=HTMLResponse)
 async def dashboard():
-    """Main dashboard entry point. Handles root and /api prefixes for Vercel."""
+    """Main dashboard entry point."""
     html_path = frontend_path / "index.html"
     if not html_path.exists():
         return HTMLResponse(content=f"<h1>Setup Error</h1><p>index.html not found. Path: {html_path}</p>", status_code=500)
@@ -284,15 +284,14 @@ async def seed():
         ]
         for e in demo_events:
             await tool_add_event(session, **e)
-
     return {"status": "ok", "message": "Demo data loaded!"}
 
 @app.get("/{path:path}")
 async def catch_all(path: str):
-    """Diagnostic route to identify path mismatches in Vercel."""
+    """Diagnostic route to identify path mismatches."""
     return {
         "error": "Path Not Found",
         "path_received": f"/{path}",
-        "available_endpoints": ["/", "/api/tasks", "/api/chat", "/api/health"],
-        "hint": "If you see a path like 'api/tasks' here, the rewrite is not stripping the prefix."
+        "entry_point": "root/index.py",
+        "available": ["/", "/api/tasks", "/api/health"]
     }
