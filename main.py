@@ -106,7 +106,11 @@ async def dashboard():
             status_code=500
         )
     
-    return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    response = HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.get("/api/health")
 async def health():
