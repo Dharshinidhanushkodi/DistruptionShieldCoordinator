@@ -1,16 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "dashboard_server.py",
-      "use": "@vercel/python",
-      "config": { "includeFiles": ["frontend/**", "models/**", "agents/**", "tools/**", "database.py", "config.py"] }
+  "functions": {
+    "dashboard_server.py": {
+      "includeFiles": "frontend/**,models/**,agents/**,tools/**,database.py,config.py"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "dashboard_server.py"
+      "source": "/(.*)",
+      "destination": "dashboard_server.py"
     }
   ]
 }
