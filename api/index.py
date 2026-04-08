@@ -281,4 +281,12 @@ async def seed():
         for e in demo_events:
             await tool_add_event(session, **e)
 
-    return {"status": "ok", "message": "Demo data loaded!"}
+@app.get("/{path:path}")
+async def catch_all(path: str):
+    """Diagnostic route to identify path mismatches in Vercel."""
+    return {
+        "error": "Path Not Found",
+        "path_received": f"/{path}",
+        "available_endpoints": ["/", "/api/tasks", "/api/chat", "/api/health"],
+        "hint": "If you see a path like 'api/tasks' here, the rewrite is not stripping the prefix."
+    }
