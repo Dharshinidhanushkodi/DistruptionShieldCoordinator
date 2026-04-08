@@ -33,6 +33,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve the frontend directory statically
+frontend_path = Path(__file__).parent / "frontend"
+if frontend_path.exists():
+    app.mount("/src", StaticFiles(directory=frontend_path / "src"), name="src")
+    app.mount("/public", StaticFiles(directory=frontend_path / "public"), name="public")
+
 coordinator = CoordinatorAgent()
 shield_active = False # Global shield state
 

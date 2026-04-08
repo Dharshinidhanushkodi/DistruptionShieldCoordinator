@@ -15,11 +15,15 @@ GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 DEFAULT_LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")
 GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
-# ─── Database ────────────────────────────────────────────────────────────────
-DATABASE_URL: str = os.getenv(
-    "DATABASE_URL",
-    "sqlite+aiosqlite:///./disruption_shield.db"
-)
+# Handle Vercel's read-only filesystem by using /tmp for SQLite
+IS_VERCEL = os.getenv("VERCEL") == "1"
+
+DATABASE_URL: str = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    if IS_VERCEL:
+        DATABASE_URL = "sqlite+aiosqlite:////tmp/disruption_shield.db"
+    else:
+        DATABASE_URL = "sqlite+aiosqlite:///./disruption_shield.db"
 
 # ─── App Settings ────────────────────────────────────────────────────────────
 APP_NAME: str = "DisruptionShield Coordinator"

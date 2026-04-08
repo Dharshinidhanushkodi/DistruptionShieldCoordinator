@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import String, DateTime, func
 from datetime import datetime
 
-DATABASE_URL = "sqlite+aiosqlite:///./disruption_shield.db"
+from config import DATABASE_URL
 
 class Base(DeclarativeBase):
     pass
