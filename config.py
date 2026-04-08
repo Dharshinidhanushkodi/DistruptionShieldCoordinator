@@ -45,12 +45,7 @@ DISRUPTION_KEYWORDS = {
 }
 
 def get_llm_config() -> dict:
-    """Returns active LLM provider configuration."""
-    if DEFAULT_LLM_PROVIDER == "gemini" and GEMINI_API_KEY:
+    """Returns active LLM provider configuration. Non-blocking if key is missing."""
+    if GEMINI_API_KEY:
         return {"provider": "gemini", "model": GEMINI_MODEL, "api_key": GEMINI_API_KEY}
-    elif GEMINI_API_KEY:
-        return {"provider": "gemini", "model": GEMINI_MODEL, "api_key": GEMINI_API_KEY}
-    else:
-        raise ValueError(
-            "No Gemini API key found. Set GEMINI_API_KEY in .env file."
-        )
+    return {"provider": "none", "error": "GEMINI_API_KEY missing"}

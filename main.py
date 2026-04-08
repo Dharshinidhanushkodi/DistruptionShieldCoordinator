@@ -72,12 +72,38 @@ async def ensure_db():
             raise
 
 @app.middleware("http")
-async def db_session_middleware(request, call_next):
-    """Ensure DB is ready before any API call."""
-    if request.url.path.startswith("/api"):
-        await ensure_db()
-    response = await call_next(request)
-    return response
+async def error_handling_middleware(request, call_next):
+    """Diagnostic middleware to catch and display internal errors."""
+    try:
+        if request.url.path.startswith("/api"):
+            # Moved DB init check inside the try block to catch crashes here too
+            global db_initialized
+            if not db_initialized:
+                await init_db()
+                db_initialized = True
+        return await call_next(request)
+    except Exception as e:
+        import traceback
+        from fastapi.responses import HTMLResponse
+        error_info = traceback.format_exc()
+        print(f"CRITICAL ERROR: {error_info}")
+        return HTMLResponse(
+            content=f"""
+            <html>
+                <body style="font-family: sans-serif; padding: 2rem; background: #0f172a; color: #f8fafc;">
+                    <h1 style="color: #ef4444;">DisruptionShield: Runtime Error</h1>
+                    <p>The server encountered an error during startup or request handling.</p>
+                    <div style="background: #1e293b; padding: 1.5rem; border-radius: 0.5rem; overflow: auto; border: 1px solid #334155;">
+                        <pre style="color: #fda4af; margin: 0; font-family: monospace; white-space: pre-wrap;">{error_info}</pre>
+                    </div>
+                    <p style="margin-top: 1.5rem; color: #94a3b8; font-size: 0.875rem;">
+                        💡 Common Fix: Ensure <b>GEMINI_API_KEY</b> is set in your Vercel Project Settings.
+                    </p>
+                </body>
+            </html>
+            """,
+            status_code=500
+        )
 
 # ─── Health & Dashboard ─────────────────────────────────────────────────────
 
