@@ -176,6 +176,46 @@ async def get_tasks():
         res = await tool_get_all_tasks(session)
         return res.get("tasks", [])
 
+@app.post("/api/tasks")
+async def add_task(data: dict = Body(...)):
+    from database import AsyncSessionLocal
+    from tools.db_tools import tool_add_task
+    async with AsyncSessionLocal() as session:
+        result = await tool_add_task(session, **data)
+        return result
+
+@app.get("/api/history")
+async def get_history():
+    from database import AsyncSessionLocal
+    from tools.db_tools import tool_get_disruption_history
+    async with AsyncSessionLocal() as session:
+        result = await tool_get_disruption_history(session, limit=20)
+        return result.get("disruption_logs", [])
+
+@app.post("/api/seed")
+async def seed():
+    from database import AsyncSessionLocal
+    from tools.db_tools import tool_add_task
+    async with AsyncSessionLocal() as session:
+        demo_tasks = [
+            {"title": "Submit Q1 financial report", "start_time": "09:00", "end_time": "11:00"},
+            {"title": "Review client contract draft", "start_time": "11:30", "end_time": "12:30"},
+        ]
+        for t in demo_tasks: await tool_add_task(session, **t)
+    return {"status": "ok", "message": "Demo data loaded!"}
+
+@app.post("/api/undo")
+async def undo():
+    return {"status": "ok", "message": "Undo not fully implemented in DB."}
+
+@app.get("/api/shield")
+async def get_shield():
+    return {"active": True}
+
+@app.post("/api/shield")
+async def toggle_shield(data: dict = Body(...)):
+    return {"active": data.get("active", True)}
+
 @app.get("/{path:path}")
 async def catch_all(path: str):
     return {"error": "not found", "path": path}
